@@ -36,7 +36,7 @@ import { authClient } from "auth/client";
 import { useTranslations } from "next-intl";
 import useSWR from "swr";
 import { getLocaleAction } from "@/i18n/get-locale";
-import { Suspense, useCallback } from "react";
+import { Suspense, useCallback, useMemo } from "react";
 import { GithubIcon } from "ui/github-icon";
 import { DiscordIcon } from "ui/discord-icon";
 import { useThemeStyle } from "@/hooks/use-theme-style";
@@ -44,6 +44,9 @@ import { BasicUser } from "app-types/user";
 import { getUserAvatar } from "lib/user/utils";
 import { Skeleton } from "ui/skeleton";
 import { useRouter } from "next/navigation";
+import { Badge } from "ui/badge";
+import { COMPONENT_CATEGORY_DEFINITIONS } from "@/constants/component-categories";
+import type { ComponentCategorySummary } from "@/lib/component-config";
 
 export function AppSidebarUserInner(props: {
   user?: BasicUser;
@@ -57,6 +60,22 @@ export function AppSidebarUserInner(props: {
     shouldRetryOnError: false,
     refreshInterval: 1000 * 60 * 10,
   });
+  const { data: componentCategories } = useSWR<ComponentCategorySummary[]>(
+    "/api/component-config/categories",
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 1000 * 60 * 10,
+    },
+  );
+  const componentCategoryById = useMemo(() => {
+    if (!componentCategories?.length) {
+      return new Map<string, ComponentCategorySummary>();
+    }
+    return new Map(
+      componentCategories.map((category) => [category.id, category]),
+    );
+  }, [componentCategories]);
   const appStoreMutate = appStore((state) => state.mutate);
   const t = useTranslations("Layout");
 
@@ -169,13 +188,61 @@ export function AppSidebarUserInner(props: {
               <Settings className="size-4 text-foreground" />
               <span>User Settings</span>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => router.push("/component-config")}
-              className="cursor-pointer"
-            >
-              <Wrench className="size-4 text-foreground" />
-              <span>Configuração dos Componentes</span>
-            </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="cursor-pointer">
+                <Wrench className="size-4 text-foreground mr-2" />
+                <span className="mr-auto">Configuração dos Componentes</span>
+                <ChevronRight className="size-4" />
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent className="w-80 space-y-1">
+                  <DropdownMenuItem
+                    onClick={() => router.push("/component-config")}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex flex-col gap-1 leading-tight">
+                      <span className="font-medium text-foreground">
+                        Visão geral
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Abrir painel completo de manutenção
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {COMPONENT_CATEGORY_DEFINITIONS.map((category) => {
+                    const summary = componentCategoryById.get(category.id);
+                    return (
+                      <DropdownMenuItem
+                        key={category.id}
+                        onClick={() =>
+                          router.push(
+                            `/component-config?category=${category.id}`,
+                          )
+                        }
+                        className="cursor-pointer"
+                      >
+                        <div className="flex flex-col gap-1 leading-tight w-full">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground truncate">
+                              {category.label}
+                            </span>
+                            {summary ? (
+                              <Badge variant="secondary" className="shrink-0">
+                                {summary.totalFiles}
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <span className="text-xs text-muted-foreground truncate">
+                            {category.description}
+                          </span>
+                        </div>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="cursor-pointer">
               <LogOutIcon className="size-4 text-foreground" />

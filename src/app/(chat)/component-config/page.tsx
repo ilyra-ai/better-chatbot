@@ -4,6 +4,19 @@ export const metadata = {
   title: "Configuração dos Componentes",
 };
 
-export default function ComponentConfigPage() {
-  return <ComponentConfigManager />;
+type ComponentConfigPageProps = {
+  searchParams?: {
+    category?: string | string[];
+  };
+};
+
+export default function ComponentConfigPage({
+  searchParams,
+}: ComponentConfigPageProps) {
+  const categoryParam = Array.isArray(searchParams?.category)
+    ? searchParams?.category[0]
+    : searchParams?.category;
+  return (
+    <ComponentConfigManager initialCategoryId={categoryParam ?? undefined} />
+  );
 }

@@ -2,6 +2,8 @@ import { promises as fs } from "fs";
 import type { Dirent } from "fs";
 import path from "path";
 
+import { COMPONENT_CATEGORY_DEFINITIONS } from "@/constants/component-categories";
+
 export type ComponentCategory = {
   id: string;
   label: string;
@@ -26,86 +28,14 @@ export type ComponentFileSummary = {
 
 const componentsRoot = path.join(process.cwd(), "src/components");
 
-const componentCategories: ComponentCategory[] = [
-  {
-    id: "structural",
-    label: "Estrutural",
-    description:
-      "Componentes essenciais compartilhados em toda a aplicação, base da experiência do usuário.",
-    directory: componentsRoot,
-    excludeTopLevel: new Set([
-      "admin",
-      "agent",
-      "auth",
-      "export",
-      "layouts",
-      "tool-invocation",
-      "ui",
-      "user",
-    ]),
-  },
-  {
-    id: "administrador",
-    label: "Administrador",
-    description: "Painéis e elementos exclusivos da administração do sistema.",
-    directory: path.join(componentsRoot, "admin"),
-  },
-  {
-    id: "agentes",
-    label: "Agentes",
-    description: "Gestão completa dos agentes inteligentes e suas interações.",
-    directory: path.join(componentsRoot, "agent"),
-  },
-  {
-    id: "autenticacao",
-    label: "Autenticação",
-    description:
-      "Fluxos de entrada, cadastro e segurança de acesso dos usuários.",
-    directory: path.join(componentsRoot, "auth"),
-  },
-  {
-    id: "exportacao",
-    label: "Exportação",
-    description:
-      "Ferramentas de exportação de dados e históricos da plataforma.",
-    directory: path.join(componentsRoot, "export"),
-  },
-  {
-    id: "layouts",
-    label: "Layouts",
-    description:
-      "Estruturas visuais completas que organizam páginas e painéis.",
-    directory: path.join(componentsRoot, "layouts"),
-  },
-  {
-    id: "ferramentas",
-    label: "Ferramentas",
-    description:
-      "Invocações e integrações com ferramentas externas e internas.",
-    directory: path.join(componentsRoot, "tool-invocation"),
-  },
-  {
-    id: "ui-ux",
-    label: "UI / UX",
-    description:
-      "Biblioteca de componentes visuais reutilizáveis e estilização avançada.",
-    directory: path.join(componentsRoot, "ui"),
-  },
-  {
-    id: "detalhes-usuarios",
-    label: "Detalhes dos Usuários",
-    description:
-      "Componentes dedicados a perfis, preferências e dados dos usuários.",
-    directory: path.join(componentsRoot, "user", "user-detail"),
-  },
-  {
-    id: "workflow",
-    label: "WorkFlow",
-    description:
-      "Orquestração e configuração completa dos fluxos de trabalho inteligentes.",
-    directory: path.join(componentsRoot, "user", "workflow"),
-  },
-];
+const componentCategories: ComponentCategory[] =
+  COMPONENT_CATEGORY_DEFINITIONS.map(
+    ({ directorySegments, excludeTopLevel, ...definition }) => ({
+      ...definition,
+      directory: path.join(componentsRoot, ...directorySegments),
+      excludeTopLevel: excludeTopLevel ? new Set(excludeTopLevel) : undefined,
+    }),
+  );
 
 const categoriesById = new Map(
   componentCategories.map((category) => [category.id, category]),

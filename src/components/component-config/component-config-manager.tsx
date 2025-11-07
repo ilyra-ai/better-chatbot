@@ -44,6 +44,7 @@ import {
   Folder,
   Search,
 } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import type {
   ComponentCategorySummary,
@@ -54,8 +55,20 @@ interface FileContentResponse {
   content: string;
 }
 
-export function ComponentConfigManager() {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+type ComponentConfigManagerProps = {
+  initialCategoryId?: string;
+};
+
+export function ComponentConfigManager({
+  initialCategoryId,
+}: ComponentConfigManagerProps = {}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    initialCategoryId ?? null,
+  );
+  const [pendingCategory, setPendingCategory] = useState<string | null>(null);
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
   const [editorValue, setEditorValue] = useState("");
   const [originalContent, setOriginalContent] = useState("");
@@ -81,11 +94,87 @@ export function ComponentConfigManager() {
     },
   );
 
+  const searchParamsString = searchParams.toString();
+  const categoryParam = searchParams.get("category");
+
+  const syncCategoryInUrl = useCallback(
+    (categoryId: string | null) => {
+      if (categoryParam === categoryId) {
+        return;
+      }
+      const next = new URLSearchParams(searchParamsString);
+      if (categoryId) {
+        next.set("category", categoryId);
+      } else {
+        next.delete("category");
+      }
+      const query = next.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+    },
+    [categoryParam, pathname, router, searchParamsString],
+  );
+
   useEffect(() => {
-    if (!selectedCategory && categories?.length) {
-      setSelectedCategory(categories[0].id);
+    if (!categories?.length) {
+      if (selectedCategory !== null) {
+        setSelectedCategory(null);
+      }
+      if (categoryParam !== null) {
+        syncCategoryInUrl(null);
+      }
+      if (pendingCategory !== null) {
+        setPendingCategory(null);
+      }
+      return;
     }
-  }, [categories, selectedCategory]);
+    if (categoryParam) {
+      const exists = categories.some(
+        (category) => category.id === categoryParam,
+      );
+      if (exists) {
+        if (pendingCategory && categoryParam !== pendingCategory) {
+          return;
+        }
+        if (pendingCategory && categoryParam === pendingCategory) {
+          setPendingCategory(null);
+        }
+        if (selectedCategory !== categoryParam) {
+          setSelectedCategory(categoryParam);
+        }
+        return;
+      }
+    }
+    const fallback = categories[0].id;
+    if (selectedCategory !== fallback) {
+      setSelectedCategory(fallback);
+    }
+    if (categoryParam !== fallback) {
+      syncCategoryInUrl(fallback);
+    }
+    if (pendingCategory !== null) {
+      setPendingCategory(null);
+    }
+  }, [
+    categories,
+    categoryParam,
+    pendingCategory,
+    selectedCategory,
+    syncCategoryInUrl,
+  ]);
+
+  const handleSelectCategory = useCallback(
+    (categoryId: string) => {
+      if (selectedCategory === categoryId) {
+        return;
+      }
+      setPendingCategory(categoryId);
+      setSelectedCategory(categoryId);
+      syncCategoryInUrl(categoryId);
+    },
+    [selectedCategory, syncCategoryInUrl],
+  );
 
   const {
     data: files,
@@ -388,7 +477,7 @@ export function ComponentConfigManager() {
                   {categories.map((category) => (
                     <button
                       key={category.id}
-                      onClick={() => setSelectedCategory(category.id)}
+                      onClick={() => handleSelectCategory(category.id)}
                       className={cn(
                         "rounded-xl border px-4 py-3 text-left transition",
                         selectedCategory === category.id
