@@ -286,9 +286,16 @@ export function AppSidebarUserInner(props: {
                         </Badge>
                       ) : null}
                     </div>
-                    <span className="text-xs text-muted-foreground truncate">
-                      {category.description}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-muted-foreground truncate">
+                        {category.description}
+                      </span>
+                      {summary ? (
+                        <span className="font-mono text-[11px] text-muted-foreground/80 truncate">
+                          {summary.relativeDirectory}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
