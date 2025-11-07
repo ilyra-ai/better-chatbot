@@ -251,6 +251,13 @@ export function ComponentConfigManager({
     return files.filter((file) => file.path.toLowerCase().includes(term));
   }, [files, searchTerm]);
 
+  const selectedCategoryInfo = useMemo(() => {
+    if (!selectedCategory || !categories) {
+      return undefined;
+    }
+    return categories.find((category) => category.id === selectedCategory);
+  }, [categories, selectedCategory]);
+
   const selectedFile = useMemo(() => {
     if (!selectedFilePath || !files) {
       return undefined;
@@ -489,9 +496,14 @@ export function ComponentConfigManager({
                         <span className="font-medium">{category.label}</span>
                         <Badge variant="secondary">{category.totalFiles}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {category.description}
-                      </p>
+                      <div className="flex flex-col gap-1 mt-1">
+                        <p className="text-xs text-muted-foreground">
+                          {category.description}
+                        </p>
+                        <span className="font-mono text-[11px] text-muted-foreground/80">
+                          {category.relativeDirectory}
+                        </span>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -509,8 +521,17 @@ export function ComponentConfigManager({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <CardTitle>Arquivos</CardTitle>
-                <CardDescription>
-                  Busque e selecione o componente desejado
+                <CardDescription className="flex flex-col gap-1">
+                  <span>Busque e selecione o componente desejado</span>
+                  {selectedCategoryInfo ? (
+                    <span className="font-mono text-[11px] text-muted-foreground/80">
+                      {selectedCategoryInfo.relativeDirectory}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      Escolha um grupo para exibir os arquivos
+                    </span>
+                  )}
                 </CardDescription>
               </div>
               <Button

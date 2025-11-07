@@ -9,6 +9,7 @@ export type ComponentCategory = {
   label: string;
   description: string;
   directory: string;
+  relativeDirectory: string;
   excludeTopLevel?: Set<string>;
 };
 
@@ -17,6 +18,7 @@ export type ComponentCategorySummary = {
   label: string;
   description: string;
   totalFiles: number;
+  relativeDirectory: string;
 };
 
 export type ComponentFileSummary = {
@@ -30,11 +32,19 @@ const componentsRoot = path.join(process.cwd(), "src/components");
 
 const componentCategories: ComponentCategory[] =
   COMPONENT_CATEGORY_DEFINITIONS.map(
-    ({ directorySegments, excludeTopLevel, ...definition }) => ({
-      ...definition,
-      directory: path.join(componentsRoot, ...directorySegments),
-      excludeTopLevel: excludeTopLevel ? new Set(excludeTopLevel) : undefined,
-    }),
+    ({ directorySegments, excludeTopLevel, ...definition }) => {
+      const directory = path.join(componentsRoot, ...directorySegments);
+      const relativeDirectory = path
+        .relative(process.cwd(), directory)
+        .split(path.sep)
+        .join("/");
+      return {
+        ...definition,
+        directory,
+        relativeDirectory,
+        excludeTopLevel: excludeTopLevel ? new Set(excludeTopLevel) : undefined,
+      };
+    },
   );
 
 const categoriesById = new Map(
@@ -142,6 +152,7 @@ export async function getComponentCategoriesSummary() {
       label: category.label,
       description: category.description,
       totalFiles: files.length,
+      relativeDirectory: category.relativeDirectory,
     });
   }
   return summaries;
@@ -207,9 +218,10 @@ export async function deleteComponentFile(
 }
 
 export function getComponentCategories() {
-  return componentCategories.map(({ id, label, description }) => ({
+  return componentCategories.map(({ id, label, description, relativeDirectory }) => ({
     id,
     label,
     description,
+    relativeDirectory,
   }));
 }
