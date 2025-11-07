@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0 (2025-11-07)
+
+
+### Features
+
+* add component configuration sidebar section ([d14b6c4](https://github.com/ilyra-ai/better-chatbot/commit/d14b6c45a1ad1d1e8ef957244b97d641439e6eb4))
+* add component configuration sidebar section ([9441392](https://github.com/ilyra-ai/better-chatbot/commit/9441392160338573b648ac6fa4329edef84edad4))
+
 ## [1.24.0](https://github.com/cgoinglove/better-chatbot/compare/v1.23.0...v1.24.0) (2025-10-06)
 
 
