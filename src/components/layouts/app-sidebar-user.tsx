@@ -26,6 +26,7 @@ import {
   MoonStar,
   ChevronRight,
   Settings,
+  Wrench,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { appStore } from "@/app/store";
@@ -42,10 +43,12 @@ import { useThemeStyle } from "@/hooks/use-theme-style";
 import { BasicUser } from "app-types/user";
 import { getUserAvatar } from "lib/user/utils";
 import { Skeleton } from "ui/skeleton";
+import { useRouter } from "next/navigation";
 
 export function AppSidebarUserInner(props: {
   user?: BasicUser;
 }) {
+  const router = useRouter();
   const { data: user } = useSWR<BasicUser>(`/api/user/details`, fetcher, {
     fallbackData: props.user,
     suspense: true,
@@ -165,6 +168,13 @@ export function AppSidebarUserInner(props: {
             >
               <Settings className="size-4 text-foreground" />
               <span>User Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.push("/component-config")}
+              className="cursor-pointer"
+            >
+              <Wrench className="size-4 text-foreground" />
+              <span>Configuração dos Componentes</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="cursor-pointer">

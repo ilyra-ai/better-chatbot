@@ -5,7 +5,14 @@ import { useChatModels } from "@/hooks/queries/use-chat-models";
 import { ChatModel } from "app-types/chat";
 import { cn } from "lib/utils";
 import { CheckIcon, ChevronDown } from "lucide-react";
-import { Fragment, memo, PropsWithChildren, useEffect, useState } from "react";
+import {
+  Fragment,
+  memo,
+  PropsWithChildren,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Button } from "ui/button";
 
 import {
@@ -32,6 +39,17 @@ export const SelectModel = (props: PropsWithChildren<SelectModelProps>) => {
   const { data: providers } = useChatModels();
   const [model, setModel] = useState(props.currentModel);
 
+  const selectedLabel = useMemo(() => {
+    if (!model) {
+      return "model";
+    }
+    const provider = providers?.find(
+      (entry) => entry.provider === model.provider,
+    );
+    const match = provider?.models.find((item) => item.name === model.model);
+    return match?.displayName || match?.name || model.model;
+  }, [model, providers]);
+
   useEffect(() => {
     const modelToUse = props.currentModel ?? appStore.getState().chatModel;
 
@@ -57,7 +75,7 @@ export const SelectModel = (props: PropsWithChildren<SelectModelProps>) => {
                   className="size-2.5 mr-1"
                 />
               )}
-              <p data-testid="selected-model-name">{model?.model || "model"}</p>
+              <p data-testid="selected-model-name">{selectedLabel}</p>
             </div>
             <ChevronDown className="size-3" />
           </Button>
@@ -97,42 +115,48 @@ export const SelectModel = (props: PropsWithChildren<SelectModelProps>) => {
                   }}
                   data-testid={`model-provider-${provider.provider}`}
                 >
-                  {provider.models.map((item) => (
-                    <CommandItem
-                      key={item.name}
-                      disabled={!provider.hasAPIKey}
-                      className="cursor-pointer"
-                      onSelect={() => {
-                        setModel({
-                          provider: provider.provider,
-                          model: item.name,
-                        });
-                        props.onSelect({
-                          provider: provider.provider,
-                          model: item.name,
-                        });
-                        setOpen(false);
-                      }}
-                      value={item.name}
-                      data-testid={`model-option-${provider.provider}-${item.name}`}
-                    >
-                      {model?.provider === provider.provider &&
-                      model?.model === item.name ? (
-                        <CheckIcon
-                          className="size-3"
-                          data-testid="selected-model-check"
-                        />
-                      ) : (
-                        <div className="ml-3" />
-                      )}
-                      <span className="pr-2">{item.name}</span>
-                      {item.isToolCallUnsupported && (
-                        <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
-                          No tools
-                        </div>
-                      )}
-                    </CommandItem>
-                  ))}
+                  {provider.models.map((item) => {
+                    const label = item.displayName || item.name;
+                    const value = item.displayName
+                      ? `${item.displayName} ${item.name}`
+                      : item.name;
+                    return (
+                      <CommandItem
+                        key={item.name}
+                        disabled={!provider.hasAPIKey}
+                        className="cursor-pointer"
+                        onSelect={() => {
+                          setModel({
+                            provider: provider.provider,
+                            model: item.name,
+                          });
+                          props.onSelect({
+                            provider: provider.provider,
+                            model: item.name,
+                          });
+                          setOpen(false);
+                        }}
+                        value={value}
+                        data-testid={`model-option-${provider.provider}-${item.name}`}
+                      >
+                        {model?.provider === provider.provider &&
+                        model?.model === item.name ? (
+                          <CheckIcon
+                            className="size-3"
+                            data-testid="selected-model-check"
+                          />
+                        ) : (
+                          <div className="ml-3" />
+                        )}
+                        <span className="pr-2">{label}</span>
+                        {item.isToolCallUnsupported && (
+                          <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+                            No tools
+                          </div>
+                        )}
+                      </CommandItem>
+                    );
+                  })}
                 </CommandGroup>
                 {i < providers?.length - 1 && <CommandSeparator />}
               </Fragment>
