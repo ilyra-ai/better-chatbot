@@ -9,6 +9,7 @@ export const useChatModels = (options?: SWRConfiguration) => {
       hasAPIKey: boolean;
       models: {
         name: string;
+        displayName?: string;
         isToolCallUnsupported: boolean;
         isImageInputUnsupported: boolean;
       }[];

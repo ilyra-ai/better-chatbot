@@ -338,7 +338,7 @@ const GenerateExampleInputJsonDialog = ({
                         model: model.name,
                       })}
                     >
-                      {model.name}
+                      {model.displayName || model.name}
                     </SelectItem>
                   ))}
                 </SelectGroup>

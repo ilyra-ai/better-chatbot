@@ -661,7 +661,9 @@ export default function PromptInput({
                           className="text-foreground group-data-[state=open]:text-foreground  "
                           data-testid="selected-model-name"
                         >
-                          {chatModel.model}
+                          {modelInfo?.displayName ||
+                            modelInfo?.name ||
+                            chatModel.model}
                         </span>
                       </>
                     ) : (
