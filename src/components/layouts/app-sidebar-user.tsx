@@ -14,7 +14,15 @@ import {
   DropdownMenuCheckboxItem,
 } from "ui/dropdown-menu";
 import { AvatarFallback, AvatarImage, Avatar } from "ui/avatar";
-import { SidebarMenuButton, SidebarMenuItem, SidebarMenu } from "ui/sidebar";
+import {
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenu,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  useSidebar,
+} from "ui/sidebar";
 import {
   ChevronsUpDown,
   Command,
@@ -43,7 +51,7 @@ import { useThemeStyle } from "@/hooks/use-theme-style";
 import { BasicUser } from "app-types/user";
 import { getUserAvatar } from "lib/user/utils";
 import { Skeleton } from "ui/skeleton";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "ui/badge";
 import { COMPONENT_CATEGORY_DEFINITIONS } from "@/constants/component-categories";
 import type { ComponentCategorySummary } from "@/lib/component-config";
@@ -52,6 +60,9 @@ export function AppSidebarUserInner(props: {
   user?: BasicUser;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { setOpenMobile } = useSidebar();
   const { data: user } = useSWR<BasicUser>(`/api/user/details`, fetcher, {
     fallbackData: props.user,
     suspense: true,
@@ -60,14 +71,15 @@ export function AppSidebarUserInner(props: {
     shouldRetryOnError: false,
     refreshInterval: 1000 * 60 * 10,
   });
-  const { data: componentCategories } = useSWR<ComponentCategorySummary[]>(
-    "/api/component-config/categories",
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      refreshInterval: 1000 * 60 * 10,
-    },
-  );
+  const { data: componentCategories, isLoading: componentCategoriesLoading } =
+    useSWR<ComponentCategorySummary[]>(
+      "/api/component-config/categories",
+      fetcher,
+      {
+        revalidateOnFocus: false,
+        refreshInterval: 1000 * 60 * 10,
+      },
+    );
   const componentCategoryById = useMemo(() => {
     if (!componentCategories?.length) {
       return new Map<string, ComponentCategorySummary>();
@@ -84,6 +96,24 @@ export function AppSidebarUserInner(props: {
       window.location.href = "/sign-in";
     });
   };
+
+  const isComponentConfigRoute = pathname.startsWith("/component-config");
+  const activeComponentCategory = isComponentConfigRoute
+    ? searchParams.get("category")
+    : null;
+
+  const handleNavigate = useCallback(
+    (target: string) => {
+      setOpenMobile(false);
+      router.push(target);
+    },
+    [router, setOpenMobile],
+  );
+
+  const handleOpenUserSettings = useCallback(() => {
+    setOpenMobile(false);
+    appStoreMutate({ openUserSettings: true });
+  }, [appStoreMutate, setOpenMobile]);
 
   if (!user) return null;
 
@@ -180,70 +210,6 @@ export function AppSidebarUserInner(props: {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem
-              onClick={() => appStoreMutate({ openUserSettings: true })}
-              className="cursor-pointer"
-              data-testid="user-settings-menu-item"
-            >
-              <Settings className="size-4 text-foreground" />
-              <span>User Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="cursor-pointer">
-                <Wrench className="size-4 text-foreground mr-2" />
-                <span className="mr-auto">Configuração dos Componentes</span>
-                <ChevronRight className="size-4" />
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="w-80 space-y-1">
-                  <DropdownMenuItem
-                    onClick={() => router.push("/component-config")}
-                    className="cursor-pointer"
-                  >
-                    <div className="flex flex-col gap-1 leading-tight">
-                      <span className="font-medium text-foreground">
-                        Visão geral
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        Abrir painel completo de manutenção
-                      </span>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {COMPONENT_CATEGORY_DEFINITIONS.map((category) => {
-                    const summary = componentCategoryById.get(category.id);
-                    return (
-                      <DropdownMenuItem
-                        key={category.id}
-                        onClick={() =>
-                          router.push(
-                            `/component-config?category=${category.id}`,
-                          )
-                        }
-                        className="cursor-pointer"
-                      >
-                        <div className="flex flex-col gap-1 leading-tight w-full">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-foreground truncate">
-                              {category.label}
-                            </span>
-                            {summary ? (
-                              <Badge variant="secondary" className="shrink-0">
-                                {summary.totalFiles}
-                              </Badge>
-                            ) : null}
-                          </div>
-                          <span className="text-xs text-muted-foreground truncate">
-                            {category.description}
-                          </span>
-                        </div>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="cursor-pointer">
               <LogOutIcon className="size-4 text-foreground" />
               <span>{t("signOut")}</span>
@@ -251,6 +217,91 @@ export function AppSidebarUserInner(props: {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          className="font-semibold"
+          onClick={handleOpenUserSettings}
+          data-testid="user-settings-menu-item"
+        >
+          <Settings className="size-4 text-foreground" />
+          <span>User Settings</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          className={cn(
+            "font-semibold",
+            isComponentConfigRoute && "bg-input/20 border border-border/40",
+          )}
+          onClick={() => handleNavigate("/component-config")}
+        >
+          <Wrench className="size-4 text-foreground" />
+          <span className="truncate">Configuração dos Componentes</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuSub className="mb-2">
+        <SidebarMenuSubItem>
+          <SidebarMenuSubButton
+            className="text-sm"
+            onClick={() => handleNavigate("/component-config")}
+            isActive={isComponentConfigRoute && !activeComponentCategory}
+          >
+            <div className="flex flex-col">
+              <span>Visão geral</span>
+              <span className="text-xs text-muted-foreground">
+                Abrir painel completo de manutenção
+              </span>
+            </div>
+          </SidebarMenuSubButton>
+        </SidebarMenuSubItem>
+        {componentCategoriesLoading ? (
+          <SidebarMenuSubItem>
+            <div className="px-2 py-1 text-xs text-muted-foreground">
+              Carregando categorias...
+            </div>
+          </SidebarMenuSubItem>
+        ) : componentCategories?.length ? (
+          COMPONENT_CATEGORY_DEFINITIONS.map((category) => {
+            const summary = componentCategoryById.get(category.id);
+            return (
+              <SidebarMenuSubItem key={category.id}>
+                <SidebarMenuSubButton
+                  className="text-sm"
+                  onClick={() =>
+                    handleNavigate(`/component-config?category=${category.id}`)
+                  }
+                  isActive={
+                    isComponentConfigRoute &&
+                    activeComponentCategory === category.id
+                  }
+                >
+                  <div className="flex flex-col gap-1 w-full">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-medium text-foreground">
+                        {category.label}
+                      </span>
+                      {summary ? (
+                        <Badge variant="secondary" className="shrink-0">
+                          {summary.totalFiles}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <span className="text-xs text-muted-foreground truncate">
+                      {category.description}
+                    </span>
+                  </div>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            );
+          })
+        ) : (
+          <SidebarMenuSubItem>
+            <div className="px-2 py-1 text-xs text-muted-foreground">
+              Nenhuma categoria disponível.
+            </div>
+          </SidebarMenuSubItem>
+        )}
+      </SidebarMenuSub>
     </SidebarMenu>
   );
 }
